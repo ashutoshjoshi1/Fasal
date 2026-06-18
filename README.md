@@ -86,4 +86,5 @@ torch present, total coverage exceeds 90%; the science/ML/services modules are 9
 - [`docs/`](docs/README.md) — PRD, architecture, data governance, modeling plan, field ops, risk &
   compliance, roadmap, pitch, and **[`docs/science.md`](docs/science.md)** (how spectrometer data
   becomes a risk signal).
+- [`docs/backend_design.md`](docs/backend_design.md) — in-depth backend design: data flow, every module/function, and many charts.
 - [`design.md`](design.md) — production-grade UI/UX brief for the upcoming frontend.

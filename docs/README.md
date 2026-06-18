@@ -53,12 +53,13 @@ against these docs.
 | 7 | [`07-roadmap-task-breakdown.md`](07-roadmap-task-breakdown.md) | 12-month roadmap → workstreams, epics, tasks, milestones |
 | 8 | [`08-pitch.md`](08-pitch.md) | Pitch narrative, funding/market alignment, the ask, one-pager, abstract |
 | — | [`science.md`](science.md) | **Standing scientific reference** — how spectrometer data becomes a risk signal (kept for the build) |
+| — | [`backend_design.md`](backend_design.md) | **Backend design (as-built)** — data flow, every module/function, many charts |
 | — | [`../design.md`](../design.md) | Production-grade UI/UX design brief (frontend handoff) |
 
 ## Reading paths
 
 - **Investor / grant reviewer:** `00` → `08` → `01` → `06`.
-- **Engineer / builder:** `02` → `science` → `03` → `04` → `07`.
+- **Engineer / builder:** `02` → `backend_design` → `science` → `03` → `04`.
 - **Scientist / data-science lead:** `science` → `04` → `03`.
 - **Field / lab / ops partner:** `00` → `05` → `06` → `03`.
 - **Designer (UI handoff):** `00` → `01` (personas + outputs) → `02` (stack) → `../design.md`.

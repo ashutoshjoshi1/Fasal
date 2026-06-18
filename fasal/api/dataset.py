@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import struct
 import zlib
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
 
 import numpy as np
 from pydantic import BaseModel
 from scipy.ndimage import gaussian_filter, zoom
 
-from fasal.api.demo_data import GeoLocation, SpectrumTrace, _spectrum_for, get_store
+from fasal.api.demo_data import GeoLocation, SpectrumTrace, get_store, spectrum_for, stable_seed
 from fasal.shared.enums import RiskClass
 
 _SIZE = 192  # rendered image side (px)
@@ -28,7 +28,7 @@ class DatasetSample(BaseModel):
     field_id: str
     field_name: str
     crop: str
-    captured_at: object  # datetime (serialized by FastAPI)
+    captured_at: datetime
     sensor: str
     n_bands: int
     gsd_cm: float
@@ -47,7 +47,7 @@ def _layers(seed: int, risk_level: float, size: int = _SIZE) -> tuple[np.ndarray
     rng = np.random.default_rng(seed)
     coarse = rng.random((6, 6))
     veg = zoom(coarse, (size / 6, size / 6), order=1)[:size, :size]
-    veg = (veg - veg.min()) / (np.ptp(veg) + 1e-9)
+    veg = (veg - veg.min()) / (veg.max() - veg.min() + 1e-9)
     period = size / (12 + seed % 6)
     rows = 0.5 + 0.5 * np.sin(np.arange(size) / period * 2 * np.pi)  # crop rows
     veg = np.clip(0.55 * veg + 0.45 * veg * rows[None, :], 0, 1)
@@ -58,7 +58,7 @@ def _layers(seed: int, risk_level: float, size: int = _SIZE) -> tuple[np.ndarray
         cy, cx = rng.random() * size, rng.random() * size
         risk += np.exp(-(((yy - cy) / (size * 0.16)) ** 2 + ((xx - cx) / (size * 0.16)) ** 2))
     risk = gaussian_filter(risk, 4)
-    risk = (risk - risk.min()) / (np.ptp(risk) + 1e-9)
+    risk = (risk - risk.min()) / (risk.max() - risk.min() + 1e-9)
     risk = np.clip(risk * risk_level, 0, 1) * (veg > 0.3)
     return veg, risk
 
@@ -121,7 +121,7 @@ def _build() -> tuple[list[DatasetSample], dict[str, tuple[int, float]]]:
     render: dict[str, tuple[int, float]] = {}
     for f in get_store().fields:
         for k in range(3):
-            seed = (hash((f.id, k)) & 0xFFFF) + 1
+            seed = (stable_seed(f.id, k) & 0xFFFF) + 1
             risk_level = float(np.clip(f.risk_score * (0.6 + 0.2 * k) + 0.12, 0, 1))
             rc = RiskClass.from_score(risk_level)
             label = (
@@ -160,7 +160,7 @@ def sample_detail(cid: str) -> DatasetSampleDetail | None:
     if sample is None:
         return None
     seed, _risk = render[cid]
-    return DatasetSampleDetail(**sample.model_dump(), spectrum=_spectrum_for(sample.risk_score, seed))
+    return DatasetSampleDetail(**sample.model_dump(), spectrum=spectrum_for(sample.risk_score, seed))
 
 
 def render_image(cid: str, kind: str) -> bytes | None:

@@ -6,10 +6,8 @@ synthetic cube — so the API is runnable end-to-end without uploads, real data,
 
 from __future__ import annotations
 
-from functools import lru_cache
-
-from fastapi import APIRouter, HTTPException, Response
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from pydantic import BaseModel, Field
 
 from fasal.api.dataset import (
     DatasetSample,
@@ -26,52 +24,43 @@ from fasal.api.demo_data import (
     RegionalStat,
     SampleRequest,
     ZoneDetail,
+    build_service,
     get_store,
     make_sample_request,
     regional_stats,
     zone_detail,
 )
-from fasal.models import available, create
-from fasal.pipeline import PipelineConfig, preprocess_spectra
-from fasal.services import ScreeningConfig, ScreeningService
+from fasal.api.security import require_role
+from fasal.models import available
 from fasal.shared.outputs import RiskPrediction
-from fasal.synth import default_wavelengths, make_cube, make_dataset
+from fasal.synth import default_wavelengths, make_cube
 
 router = APIRouter()
+meta_router = APIRouter()  # public (unauthenticated): health, models
 
 
-@lru_cache(maxsize=1)
-def _service() -> ScreeningService:
-    config = PipelineConfig()
-    wavelengths = default_wavelengths()
-    spectra, _, labels, _ = make_dataset(400, wavelengths, seed=0)
-    prepared, _ = preprocess_spectra(spectra, wavelengths, config)  # train/inference parity
-    model = create("rf").fit(prepared, labels)
-    return ScreeningService(model, config=ScreeningConfig(pipeline_config=config))
-
-
-@router.get("/health")
+@meta_router.get("/health")
 def health() -> dict:
     return {"status": "ok", "service": "fasal", "note": "screening, not certification"}
 
 
-@router.get("/models")
+@meta_router.get("/models")
 def models() -> dict:
     return {"available": available()}
 
 
 @router.post("/screen/synthetic", response_model=RiskPrediction)
-def screen_synthetic(seed: int = 1) -> RiskPrediction:
+def screen_synthetic(seed: int = Query(default=1, ge=0, le=2**31 - 1)) -> RiskPrediction:
     """Screen a synthetic field and return the risk prediction (demo without real data)."""
     cube, _ = make_cube(24, 24, default_wavelengths(), seed=seed)
-    return _service().screen_cube(cube, flight_id=f"sim-{seed}", zone_id="sim-field").prediction
+    return build_service().screen_cube(cube, flight_id=f"sim-{seed}", zone_id="sim-field").prediction
 
 
 # --- console data endpoints (backed by the deterministic demo store) ---
 
 
 class LabQueueBody(BaseModel):
-    lot_ids: list[str]
+    lot_ids: list[str] = Field(default_factory=list, max_length=200)
 
 
 @router.get("/fields", response_model=list[FieldSummary])
@@ -114,7 +103,7 @@ def list_batches():
     return get_store().batches
 
 
-@router.post("/lab-queue", response_model=SampleRequest)
+@router.post("/lab-queue", response_model=SampleRequest, dependencies=[Depends(require_role("exporter", "lab"))])
 def lab_queue(body: LabQueueBody):
     return make_sample_request(body.lot_ids)
 

@@ -12,7 +12,7 @@ export function RiskBadge({
   score?: number;
   size?: "sm" | "md";
 }) {
-  const m = RISK_META[riskClass];
+  const m = RISK_META[riskClass] ?? RISK_META.low;
   return (
     <span
       className={cn(

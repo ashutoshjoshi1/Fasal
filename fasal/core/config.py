@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     fov_deg: float = C.DEFAULT_FOV_DEG
     wavelength_coefficients: list[float] | None = None  # AVS_GetLambda (ascending); None → linear default
 
+    # API security. Auth is OPEN in dev when api_keys is unset; set FASAL_API_KEYS="key:role,..."
+    # (roles: admin/exporter/lab/...) to require an X-API-Key header. CORS + rate limit are config-driven.
+    api_keys: str | None = None
+    allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    rate_limit_enabled: bool = True
+    rate_limit_per_minute: int = 120
+
 
 @lru_cache
 def get_settings() -> Settings:

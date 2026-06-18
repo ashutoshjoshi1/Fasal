@@ -77,7 +77,8 @@ class SpectralCNNRiskModel(RiskModel):
         return self
 
     def _logits(self, X: np.ndarray) -> torch.Tensor:
-        assert self.module is not None, "call fit() first"
+        if self.module is None:
+            raise RuntimeError("call fit() or load() first")
         xt = torch.as_tensor(np.asarray(X, dtype=np.float32)[:, None, :]).to(self.device)
         return self.module(xt)
 
@@ -88,11 +89,18 @@ class SpectralCNNRiskModel(RiskModel):
 
     def predict_proba_samples(self, X: np.ndarray, n_samples: int = 20) -> np.ndarray:
         """MC-dropout: (n_samples, N) probabilities with dropout active (docs/04 §5)."""
+        if self.module is None:
+            raise RuntimeError("call fit() or load() first")
+        was_training = self.module.training
         self.module.train()  # only dropout is stochastic (no BatchNorm)
         out = []
-        with torch.no_grad():
-            for _ in range(n_samples):
-                out.append(torch.sigmoid(self._logits(X)).cpu().numpy().ravel())
+        try:
+            with torch.no_grad():
+                for _ in range(n_samples):
+                    out.append(torch.sigmoid(self._logits(X)).cpu().numpy().ravel())
+        finally:
+            if not was_training:
+                self.module.eval()
         return np.stack(out, axis=0)
 
     def save(self, path: str) -> None:
@@ -102,7 +110,7 @@ class SpectralCNNRiskModel(RiskModel):
 
     @classmethod
     def load(cls, path: str, *, device: str | None = None) -> SpectralCNNRiskModel:
-        blob = torch.load(path, map_location="cpu")
+        blob = torch.load(path, map_location="cpu", weights_only=True)
         model = cls(dropout=blob["dropout"], device=device)
         model.n_bands = blob["n_bands"]
         model.module = Spectral1DCNN(model.n_bands, dropout=model.dropout).to(model.device)

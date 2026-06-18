@@ -4,6 +4,7 @@ import pytest
 
 torch = pytest.importorskip("torch")  # noqa: F841 — skip whole module without the deep extra
 
+import numpy as np  # noqa: E402
 from sklearn.metrics import roc_auc_score  # noqa: E402
 from sklearn.model_selection import train_test_split  # noqa: E402
 
@@ -32,3 +33,13 @@ def test_fusion_model_spectral_only_predicts_probabilities():
     probs = model.predict_proba(Xte)
     assert probs.shape == (len(yte),)
     assert ((probs >= 0.0) & (probs <= 1.0)).all()
+
+
+def test_deep_models_save_load_roundtrip(tmp_path):
+    Xtr, Xte, ytr, _yte = _split()
+    for kind in ("cnn1d", "fusion"):
+        model = create(kind, epochs=5, batch_size=32).fit(Xtr, ytr)
+        path = str(tmp_path / f"{kind}.pt")
+        model.save(path)
+        reloaded = type(model).load(path)
+        assert np.allclose(model.predict_proba(Xte), reloaded.predict_proba(Xte), atol=1e-5)

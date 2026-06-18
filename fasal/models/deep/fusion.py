@@ -107,8 +107,11 @@ class FusionRiskModel(RiskModel):
         spectral, spatial, metadata = self._unpack(X)
         spatial_channels = spatial.shape[1] if spatial is not None else None
         metadata_dim = metadata.shape[1] if metadata is not None else 0
+        self.n_bands = spectral.shape[1]
+        self.spatial_channels = spatial_channels
+        self.metadata_dim = metadata_dim
         self.module = FusionModel(
-            spectral.shape[1], spatial_channels, metadata_dim, embed=self.embed, dropout=self.dropout
+            self.n_bands, spatial_channels, metadata_dim, embed=self.embed, dropout=self.dropout
         ).to(self.device)
         loader = DataLoader(
             FusionDataset(spectral, spatial, metadata, y), batch_size=self.batch_size, shuffle=True
@@ -117,7 +120,8 @@ class FusionRiskModel(RiskModel):
         return self
 
     def predict_proba(self, X) -> np.ndarray:
-        assert self.module is not None, "call fit() first"
+        if self.module is None:
+            raise RuntimeError("call fit() or load() first")
         spectral, spatial, metadata = self._unpack(X)
         inputs = {"spectral": torch.as_tensor(spectral[:, None, :]).to(self.device)}
         if spatial is not None:
@@ -127,3 +131,35 @@ class FusionRiskModel(RiskModel):
         self.module.eval()
         with torch.no_grad():
             return torch.sigmoid(self.module(**inputs)).cpu().numpy().ravel()
+
+    def save(self, path: str) -> None:
+        if self.module is None:
+            raise RuntimeError("call fit() first")
+        torch.save(
+            {
+                "state": self.module.state_dict(),
+                "n_bands": self.n_bands,
+                "spatial_channels": self.spatial_channels,
+                "metadata_dim": self.metadata_dim,
+                "embed": self.embed,
+                "dropout": self.dropout,
+            },
+            path,
+        )
+
+    @classmethod
+    def load(cls, path: str, *, device: str | None = None) -> FusionRiskModel:
+        blob = torch.load(path, map_location="cpu", weights_only=True)
+        model = cls(embed=blob["embed"], dropout=blob["dropout"], device=device)
+        model.n_bands = blob["n_bands"]
+        model.spatial_channels = blob["spatial_channels"]
+        model.metadata_dim = blob["metadata_dim"]
+        model.module = FusionModel(
+            blob["n_bands"],
+            blob["spatial_channels"],
+            blob["metadata_dim"],
+            embed=blob["embed"],
+            dropout=blob["dropout"],
+        ).to(model.device)
+        model.module.load_state_dict(blob["state"])
+        return model

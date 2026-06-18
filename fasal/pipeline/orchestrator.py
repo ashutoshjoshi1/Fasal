@@ -9,13 +9,17 @@ so training data can be prepared with the *exact same* recipe (no train/inferenc
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 import numpy as np
 
 from fasal.core import constants as C
+from fasal.core.logging import get_logger
 from fasal.pipeline import calibration, preprocess, qc
 from fasal.pipeline.cube import HSICube
 from fasal.pipeline.segmentation import NDVISegmenter
+
+_logger = get_logger(__name__)
 
 
 @dataclass
@@ -26,13 +30,22 @@ class PipelineConfig:
     sg_window: int = C.SG_WINDOW
     sg_polyorder: int = C.SG_POLYORDER
     derivative: int = 0  # 0 = smoothing only; >=1 = smoothed derivative
-    scatter: str = "snv"  # "snv" | "msc" | "none"
+    scatter: Literal["snv", "msc", "none"] = "snv"
     target_wavelengths: np.ndarray | None = None
     bad_bands: tuple[tuple[float, float], ...] = ()
     ndvi_threshold: float = 0.3
     sat_value: float = 1.5
     min_brightness: float = 0.02
     max_brightness: float = 1.2
+    # MSC reference spectrum fitted on TRAINING data; required for train/inference parity when
+    # scatter="msc" (see fit_msc_reference). None falls back to a per-batch reference (skew risk).
+    msc_reference: np.ndarray | None = None
+
+    def __post_init__(self) -> None:
+        if self.scatter not in ("snv", "msc", "none"):
+            raise ValueError(f"scatter must be 'snv' | 'msc' | 'none'; got {self.scatter!r}")
+        if self.derivative < 0:
+            raise ValueError(f"derivative order must be >= 0; got {self.derivative}")
 
 
 @dataclass
@@ -48,17 +61,10 @@ class PipelineResult:
     meta: dict = field(default_factory=dict)
 
 
-def preprocess_spectra(
-    spectra: np.ndarray, wavelengths: np.ndarray, config: PipelineConfig
+def _pre_scatter(
+    spectra: np.ndarray, wl: np.ndarray, config: PipelineConfig
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Apply the locked recipe to a ``(N, B)`` spectra array. Returns ``(spectra, wavelengths)``.
-
-    Use this on training spectra so they match what the pipeline produces at inference time.
-    """
-    spectra = np.asarray(spectra, dtype=float)
-    wl = np.asarray(wavelengths, dtype=float)
-    if spectra.size == 0:
-        return spectra, wl
+    """Recipe steps before scatter correction: bad-band removal, resample, smooth/derivative."""
     if config.bad_bands:
         spectra, wl = preprocess.remove_bad_bands(spectra, wl, config.bad_bands)
     if config.target_wavelengths is not None:
@@ -72,10 +78,46 @@ def preprocess_spectra(
         spectra = preprocess.savitzky_golay(
             spectra, window=config.sg_window, polyorder=config.sg_polyorder, deriv=0
         )
+    return spectra, wl
+
+
+def fit_msc_reference(spectra: np.ndarray, wavelengths: np.ndarray, config: PipelineConfig) -> np.ndarray:
+    """Fit the MSC reference spectrum on TRAINING spectra.
+
+    Store the result on ``config.msc_reference`` and reuse the same config at inference so MSC uses
+    the same reference both times (avoids the train/serve skew flagged in review).
+    """
+    spectra = np.asarray(spectra, dtype=float)
+    wl = np.asarray(wavelengths, dtype=float)
+    if spectra.size == 0:
+        return np.zeros(wl.shape, dtype=float)
+    pre, _ = _pre_scatter(spectra, wl, config)
+    return pre.reshape(-1, pre.shape[-1]).mean(axis=0)
+
+
+def preprocess_spectra(
+    spectra: np.ndarray, wavelengths: np.ndarray, config: PipelineConfig
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply the locked recipe to a ``(N, B)`` spectra array. Returns ``(spectra, wavelengths)``.
+
+    Use this on training spectra so they match what the pipeline produces at inference time. For
+    ``scatter="msc"`` set ``config.msc_reference`` (via :func:`fit_msc_reference`) so the same
+    reference is used at train and inference time.
+    """
+    spectra = np.asarray(spectra, dtype=float)
+    wl = np.asarray(wavelengths, dtype=float)
+    if spectra.size == 0:
+        return spectra, wl
+    spectra, wl = _pre_scatter(spectra, wl, config)
     if config.scatter == "snv":
         spectra = preprocess.snv(spectra)
     elif config.scatter == "msc":
-        spectra, _ = preprocess.msc(spectra)
+        if config.msc_reference is None:
+            _logger.warning(
+                "scatter='msc' without a fitted msc_reference; using a per-batch reference "
+                "(train/inference skew risk). Set config.msc_reference via fit_msc_reference()."
+            )
+        spectra, _ = preprocess.msc(spectra, reference=config.msc_reference)
     return spectra, wl
 
 

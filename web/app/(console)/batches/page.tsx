@@ -95,6 +95,11 @@ export default function BatchesPage() {
             Clear
           </Button>
         </div>
+        {labQueue.isError && (
+          <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
+            Could not generate the request — is the backend running?
+          </p>
+        )}
         {request && (
           <Card className="mt-4 p-3">
             <p className="text-xs uppercase tracking-wide text-text-muted">Sample request</p>

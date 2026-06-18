@@ -90,6 +90,7 @@ export default function DatasetPage() {
                   alt={`Drone capture of ${s.field_name}`}
                   width={300}
                   height={300}
+                  loading="lazy"
                   className="aspect-square w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
                 />
                 <div className="absolute left-2 top-2">

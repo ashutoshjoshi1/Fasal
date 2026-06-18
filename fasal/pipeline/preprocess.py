@@ -49,7 +49,7 @@ def snv(x: np.ndarray) -> np.ndarray:
     sd = x.std(axis=-1, keepdims=True)
     with np.errstate(divide="ignore", invalid="ignore"):
         out = (x - mu) / sd
-    return np.where(sd == 0, 0.0, out)
+    return np.where(np.isclose(sd, 0.0), 0.0, out)
 
 
 def msc(x: np.ndarray, reference: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
@@ -62,10 +62,16 @@ def msc(x: np.ndarray, reference: np.ndarray | None = None) -> tuple[np.ndarray,
     orig_shape = x.shape
     flat = x.reshape(-1, orig_shape[-1])
     ref = flat.mean(axis=0) if reference is None else np.asarray(reference, dtype=float)
-    out = np.empty_like(flat)
-    for i in range(flat.shape[0]):
-        slope, intercept = np.polyfit(ref, flat[i], 1)
-        out[i] = flat[i] - intercept if slope == 0 else (flat[i] - intercept) / slope
+    # Per-spectrum OLS of `flat[i] ≈ slope·ref + intercept`, vectorized (ref is shared across rows):
+    #   slope = Σ(ref-ref̄)·flat / Σ(ref-ref̄)²,  intercept = flat̄ - slope·ref̄.
+    ref_c = ref - ref.mean()
+    denom = float(ref_c @ ref_c)
+    slope = (flat @ ref_c) / denom if denom else np.zeros(flat.shape[0])
+    slope = slope[:, None]
+    intercept = flat.mean(axis=1, keepdims=True) - slope * ref.mean()
+    with np.errstate(divide="ignore", invalid="ignore"):
+        corrected = (flat - intercept) / slope
+    out = np.where(np.isclose(slope, 0.0), flat - intercept, corrected)
     return out.reshape(orig_shape), ref
 
 
@@ -75,9 +81,12 @@ def resample(x: np.ndarray, wavelengths: np.ndarray, target: np.ndarray) -> np.n
     wl = np.asarray(wavelengths, dtype=float)
     tw = np.asarray(target, dtype=float)
     flat = x.reshape(-1, x.shape[-1])
-    out = np.empty((flat.shape[0], tw.size))
-    for i in range(flat.shape[0]):
-        out[i] = np.interp(tw, wl, flat[i])
+    # Shared source/target grids → resolve bracketing indices + weights once, apply to all rows.
+    # Matches np.interp: linear between neighbours, clamped to edge values outside [wl[0], wl[-1]].
+    lo = np.clip(np.searchsorted(wl, tw, side="right") - 1, 0, wl.size - 2)
+    hi = lo + 1
+    frac = np.clip((tw - wl[lo]) / (wl[hi] - wl[lo]), 0.0, 1.0)
+    out = flat[:, lo] * (1.0 - frac) + flat[:, hi] * frac
     return out.reshape(*x.shape[:-1], tw.size)
 
 

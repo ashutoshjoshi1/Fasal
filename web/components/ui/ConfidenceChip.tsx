@@ -3,7 +3,7 @@ import type { Confidence } from "@/lib/types";
 
 /** Confidence chip — a separate visual channel from risk (violet/slate + icon). */
 export function ConfidenceChip({ confidence }: { confidence: Confidence }) {
-  const m = CONFIDENCE_META[confidence];
+  const m = CONFIDENCE_META[confidence] ?? CONFIDENCE_META.uncertain;
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm font-medium"

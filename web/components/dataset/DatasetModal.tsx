@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { SpectralChart } from "@/components/charts/SpectralChart";
 import { Button } from "@/components/ui/Button";
@@ -22,10 +22,48 @@ const KINDS: { k: CaptureImageKind; label: string; note: string }[] = [
 export function DatasetModal({ sampleId, onClose }: { sampleId: string; onClose: () => void }) {
   const { data, isLoading, isError } = useDatasetSample(sampleId);
   const [kind, setKind] = useState<CaptureImageKind>("rgb");
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length) {
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dataset-modal-title"
+        tabIndex={-1}
         className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-card border border-border bg-surface-1 shadow-[var(--shadow-float)]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -40,7 +78,9 @@ export function DatasetModal({ sampleId, onClose }: { sampleId: string; onClose:
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-mono text-xs text-text-muted">{data.id}</p>
-                <h2 className="text-lg font-semibold text-text-primary">{data.field_name}</h2>
+                <h2 id="dataset-modal-title" className="text-lg font-semibold text-text-primary">
+                  {data.field_name}
+                </h2>
                 <p className="text-sm capitalize text-text-secondary">
                   {data.crop} · {fmtDate(data.captured_at)}
                 </p>

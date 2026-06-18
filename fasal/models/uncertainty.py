@@ -66,9 +66,15 @@ class MahalanobisOODDetector:
         quad = np.einsum("ij,jk,ik->i", diff, self.inv_, diff)
         return np.sqrt(np.maximum(quad, 0.0))
 
+    def _check_fitted(self) -> None:
+        if not hasattr(self, "threshold_"):
+            raise RuntimeError("MahalanobisOODDetector must be fitted before use")
+
     def distance(self, X: np.ndarray) -> np.ndarray:
+        self._check_fitted()
         return self._distance(X)
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """Boolean OOD flag per row."""
+        self._check_fitted()
         return self._distance(X) > self.threshold_

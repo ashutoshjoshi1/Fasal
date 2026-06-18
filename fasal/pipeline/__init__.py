@@ -10,6 +10,7 @@ from fasal.pipeline.orchestrator import (
     PipelineConfig,
     PipelineResult,
     ReflectancePipeline,
+    fit_msc_reference,
     preprocess_spectra,
 )
 from fasal.pipeline.qc import QCResult
@@ -38,6 +39,7 @@ __all__ = [
     "PipelineConfig",
     "PipelineResult",
     "preprocess_spectra",
+    "fit_msc_reference",
     # point-spectrometer (Avantes) path
     "RawSpectrum",
     "PointSpectrum",

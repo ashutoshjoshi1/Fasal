@@ -7,6 +7,7 @@ once and cached. Nothing here is real residue data — it is development scaffol
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from dataclasses import field as dc_field
 from datetime import datetime, timedelta
@@ -37,6 +38,16 @@ _FIELDS_SEED = [
     ("fld-005", "Highland Tea Estate — Slope 4", "tea", -0.52, 37.45),
 ]
 _INGREDIENTS = ["chlorpyrifos", "imidacloprid", "mancozeb", "lambda-cyhalothrin", "azoxystrobin"]
+
+
+def stable_seed(*parts: object) -> int:
+    """Deterministic 32-bit seed from arbitrary parts (independent of PYTHONHASHSEED).
+
+    Builtin ``hash()`` is salted per process, so it must not be used where reproducibility is
+    claimed (review finding). This gives the same value across runs.
+    """
+    digest = hashlib.md5("|".join(str(p) for p in parts).encode()).hexdigest()
+    return int(digest[:8], 16)
 
 
 # --------------------------------------------------------------------------- DTOs
@@ -151,7 +162,7 @@ class DemoStore:
 
 
 @lru_cache(maxsize=1)
-def _build_service() -> ScreeningService:
+def build_service() -> ScreeningService:
     config = PipelineConfig()
     wl = default_wavelengths()
     spectra, _, labels, _ = make_dataset(400, wl, signal_strength=0.04, seed=0)
@@ -177,7 +188,7 @@ def _block_mean(risk_map: np.ndarray, gi: int, gj: int, n: int) -> float | None:
     return float(np.nanmean(block))
 
 
-def _spectrum_for(score: float, seed: int) -> SpectrumTrace:
+def spectrum_for(score: float, seed: int) -> SpectrumTrace:
     rng = np.random.default_rng(seed)
     wl = default_wavelengths()
     control = vegetation_template(wl)
@@ -193,7 +204,7 @@ def _spectrum_for(score: float, seed: int) -> SpectrumTrace:
 @lru_cache(maxsize=1)
 def get_store() -> DemoStore:
     """Build (once) and return the cached demo dataset."""
-    service = _build_service()
+    service = build_service()
     wl = default_wavelengths()
     fields: list[FieldDetail] = []
     zones_geojson: dict[str, dict] = {}
@@ -294,7 +305,7 @@ def zone_detail(zone_id: str) -> ZoneDetail | None:
         return None
     wl = default_wavelengths()
     reasons = reason_codes_from_bands(
-        _build_service().model,
+        build_service().model,
         wl,
         coverage=0.9,
         spray_recent=zone.days_since_spray < 7,
@@ -309,13 +320,13 @@ def zone_detail(zone_id: str) -> ZoneDetail | None:
             model_version=_MODEL_VERSION, sensor_id="sim-vnir", flight_id=f"{zone.field_id}-f1"
         ),
     )
-    seed = abs(hash(zone_id)) % (2**31)
+    seed = stable_seed(zone_id)
     crop = store.crop_by_field.get(zone.field_id, "crop")
     return ZoneDetail(
         zone_id=zone.zone_id,
         field_id=zone.field_id,
         prediction=prediction,
-        spectrum=_spectrum_for(zone.score, seed),
+        spectrum=spectrum_for(zone.score, seed),
         metadata=ZoneMetadata(
             crop=crop,
             variety="cv. demo",
@@ -337,7 +348,7 @@ def make_sample_request(lot_ids: list[str]) -> SampleRequest:
         if lot in by_lot
     ]
     return SampleRequest(
-        request_id=f"req-{abs(hash(tuple(lot_ids))) % 10000:04d}",
+        request_id=f"req-{stable_seed(*lot_ids) % 10000:04d}",
         lot_ids=list(lot_ids),
         points=points,
         created_label="just now",

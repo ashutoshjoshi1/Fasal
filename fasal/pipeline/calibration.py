@@ -56,12 +56,16 @@ def empirical_line_fit(
         raise ValueError("empirical line needs >= 2 reference panels")
     if ref.ndim == 1:
         ref = np.repeat(ref[:, None], n_bands, axis=1)
-    gain = np.empty(n_bands)
-    offset = np.empty(n_bands)
-    for b in range(n_bands):
-        design = np.vstack([dn[:, b], np.ones(n_panels)]).T
-        (g, o), *_ = np.linalg.lstsq(design, ref[:, b], rcond=None)
-        gain[b], offset[b] = g, o
+    # Per-band OLS of `ref = gain·dn + offset`, vectorized closed-form (panels shared per band):
+    #   gain = Sxy/Sxx,  offset = ref̄ - gain·dn̄,  Sxx = Σ(dn-dn̄)², Sxy = Σ(dn-dn̄)(ref-ref̄).
+    dn_mean = dn.mean(axis=0)
+    ref_mean = ref.mean(axis=0)
+    dn_c = dn - dn_mean
+    sxx = (dn_c * dn_c).sum(axis=0)
+    sxy = (dn_c * (ref - ref_mean)).sum(axis=0)
+    safe = ~np.isclose(sxx, 0.0)
+    gain = np.where(safe, sxy / np.where(safe, sxx, 1.0), 0.0)
+    offset = ref_mean - gain * dn_mean
     return gain, offset
 
 

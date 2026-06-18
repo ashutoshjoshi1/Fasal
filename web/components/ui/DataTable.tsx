@@ -73,8 +73,23 @@ export function DataTable<T>({
           {sorted.map((row, i) => (
             <tr
               key={getRowId ? getRowId(row) : i}
-              className={cn("border-b border-border last:border-0", onRowClick && "cursor-pointer hover:bg-surface-2")}
+              className={cn(
+                "border-b border-border last:border-0",
+                onRowClick && "cursor-pointer hover:bg-surface-2 focus-visible:bg-surface-2",
+              )}
               onClick={() => onRowClick?.(row)}
+              tabIndex={onRowClick ? 0 : undefined}
+              role={onRowClick ? "button" : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onRowClick(row);
+                      }
+                    }
+                  : undefined
+              }
             >
               {columns.map((c) => (
                 <td key={c.key} className={cn("px-3 py-2.5 align-middle", c.align === "right" && "text-right tnum")}>

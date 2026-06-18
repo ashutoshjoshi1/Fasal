@@ -7,7 +7,7 @@ import { Button } from "./Button";
 
 /** The single safety-first next step. Never implies compliance. */
 export function ActionCard({ action, onRequestLab }: { action: Action; onRequestLab?: () => void }) {
-  const m = ACTION_META[action];
+  const m = ACTION_META[action] ?? ACTION_META.collect_sample;
   const urgent = action === "send_to_lab" || action === "collect_sample";
   return (
     <div className="rounded-card border border-border bg-surface-2 p-4">

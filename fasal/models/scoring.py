@@ -33,9 +33,11 @@ class ScoreCalibrator:
     def transform(self, scores: np.ndarray) -> np.ndarray:
         scores = np.asarray(scores, dtype=float).ravel()
         if self.method == "isotonic":
-            assert self._isotonic is not None, "call fit() first"
+            if self._isotonic is None:
+                raise RuntimeError("ScoreCalibrator.transform() called before fit()")
             return np.clip(self._isotonic.predict(scores), 0.0, 1.0)
-        assert self._logistic is not None, "call fit() first"
+        if self._logistic is None:
+            raise RuntimeError("ScoreCalibrator.transform() called before fit()")
         return self._logistic.predict_proba(scores.reshape(-1, 1))[:, 1]
 
     def fit_transform(self, scores: np.ndarray, y: np.ndarray) -> np.ndarray:

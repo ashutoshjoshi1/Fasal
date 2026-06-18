@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   description: "Pesticide-residue risk screening — screening, not certification.",
 };
 
+// Render per request so Next applies the middleware CSP nonce to every script tag.
+// Nonce-based CSP is incompatible with static prerendering (the nonce changes each request).
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-theme="light" className={`${plexSans.variable} ${plexMono.variable}`}>

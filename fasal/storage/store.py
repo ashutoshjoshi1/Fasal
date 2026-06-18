@@ -26,8 +26,15 @@ class LocalObjectStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
+    def _resolve(self, key: str) -> Path:
+        """Resolve ``key`` under ``root`` and reject path-traversal escapes."""
+        path = (self.root / key).resolve()
+        if not path.is_relative_to(self.root.resolve()):
+            raise ValueError(f"key {key!r} escapes the storage root")
+        return path
+
     def _path(self, key: str) -> Path:
-        path = self.root / key
+        path = self._resolve(key)
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -40,7 +47,10 @@ class LocalObjectStore:
         return self._path(key).read_bytes()
 
     def exists(self, key: str) -> bool:
-        return (self.root / key).exists()
+        try:
+            return self._resolve(key).exists()
+        except ValueError:
+            return False
 
     def put_array(self, key: str, array: np.ndarray) -> str:
         buffer = io.BytesIO()

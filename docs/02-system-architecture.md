@@ -100,24 +100,29 @@ with reproducibility and geospatial correctness built in.
 | **Packaging/CI** | Docker, GitHub Actions | Reproducible envs; lint/type/test gates |
 | **Compute** | Edge GPU (field) + cloud GPU (training) | §6.1 "ideal" path; scalable training compute |
 
-## 5. Proposed repository structure (for the build phase)
+## 5. Repository structure (as built — backend)
+
+The backend foundation now exists at the repo root as the importable `fasal/` package; `web/` is
+deferred until the frontend design files arrive.
 
 ```
-fasal/
-├── pipeline/      # ingestion, calibration→reflectance, preprocessing, QC masks, segmentation
-│   ├── ingest/        # schema-validated intake (Component A)
-│   ├── calibration/   # radiance→reflectance (B)
-│   ├── preprocess/    # SG/derivative/SNV/MSC, bad-band removal (C) — version-locked recipe
-│   ├── qc/            # masking + coverage-quality (D)
-│   └── segmentation/  # canopy/fruit (E)
-├── models/        # features, baselines (PLS/RF/SVM/GBM), DL (CNN/fusion), uncertainty, XAI (F/G/H)
-├── api/           # FastAPI services: prediction, data access, sample-plan, lab-loop (J/M)
-├── web/           # Next.js dashboard — persona surfaces (K); built from design.md
-├── shared/        # pydantic schemas for the 8 data objects; shared types/enums (output contract)
-├── data/          # schema defs, DVC pointers, dataset cards (NO raw data in git)
-├── notebooks/     # research/feasibility experiments
-├── infra/         # Dockerfiles, IaC, CI/CD, deployment manifests
-└── docs/          # this documentation suite (+ ../design.md at root)
+fasal/                 # importable Python package (backend)
+├── core/          # config, scientific constants, logging
+├── shared/        # the 8 data objects + risk output contract (pydantic)
+├── pipeline/      # calibration → preprocess → QC → segmentation → orchestrator (the science)
+├── features/      # vegetation/red-edge/water indices + descriptors
+├── synth/         # synthetic hyperspectral data (run/test without real captures)
+├── models/        # baselines (PLS/RF/SVM/GBM), uncertainty/OOD, calibration, explainability
+│   └── deep/      # PyTorch 1D-CNN + spectral/spatial/metadata fusion (extra: fasal[deep])
+├── hardware/      # sensor/drone protocols + simulated driver
+├── services/      # screening (cube → prediction) + sample-plan generation
+├── db/            # repository pattern (in-memory default; Postgres/PostGIS later) — light
+├── storage/       # object store (local default; S3/MinIO later) — light
+├── api/           # thin FastAPI surface (extra: fasal[api]) — light
+└── cli.py         # `fasal version` / `fasal demo`
+tests/             # pytest suite (science + ML + integration)
+infra/             # docker-compose (Postgres/PostGIS + MinIO); CI under .github/workflows/
+docs/              # planning suite + science.md     (web/ deferred until design files arrive)
 ```
 
 The **output contract** and **8 data objects** live in `shared/` so the pipeline, API, and web app

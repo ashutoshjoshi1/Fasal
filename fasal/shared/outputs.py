@@ -51,7 +51,7 @@ class RiskPrediction(BaseModel):
         *,
         reason_codes: list[ReasonCode] | None = None,
         provenance: Provenance | None = None,
-    ) -> "RiskPrediction":
+    ) -> RiskPrediction:
         """Build a prediction, deriving class and action from the contract mappings."""
         risk_class = RiskClass.from_score(risk_score)
         return cls(

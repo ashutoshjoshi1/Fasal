@@ -20,7 +20,7 @@ class RiskClass(str, Enum):
     HIGH = "high"
 
     @classmethod
-    def from_score(cls, score: float) -> "RiskClass":
+    def from_score(cls, score: float) -> RiskClass:
         """Map a calibrated risk score in [0, 1] to a class (thresholds in core.constants)."""
         if not 0.0 <= score <= 1.0:
             raise ValueError(f"risk score must be in [0, 1], got {score!r}")
@@ -48,7 +48,7 @@ class Action(str, Enum):
     SEND_TO_LAB = "send_to_lab"
 
     @classmethod
-    def recommend(cls, risk: "RiskClass", confidence: "Confidence") -> "Action":
+    def recommend(cls, risk: RiskClass, confidence: Confidence) -> Action:
         """Safety-first routing: never under-route uncertain/OOD or high-risk zones."""
         if confidence is Confidence.OOD:
             return cls.SEND_TO_LAB if risk is RiskClass.HIGH else cls.COLLECT_SAMPLE

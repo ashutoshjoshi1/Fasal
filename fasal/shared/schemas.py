@@ -52,12 +52,12 @@ class SpectralCube(BaseModel):
     width: int | None = None
 
     @model_validator(mode="after")
-    def _check_bands(self) -> "SpectralCube":
+    def _check_bands(self) -> SpectralCube:
         if self.n_bands != len(self.wavelengths_nm):
             raise ValueError(
                 f"n_bands ({self.n_bands}) != len(wavelengths_nm) ({len(self.wavelengths_nm)})"
             )
-        if any(b <= a for a, b in zip(self.wavelengths_nm, self.wavelengths_nm[1:])):
+        if any(b <= a for a, b in zip(self.wavelengths_nm, self.wavelengths_nm[1:], strict=False)):
             raise ValueError("wavelengths_nm must be strictly increasing")
         return self
 

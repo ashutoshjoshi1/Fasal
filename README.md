@@ -87,4 +87,5 @@ torch present, total coverage exceeds 90%; the science/ML/services modules are 9
   compliance, roadmap, pitch, and **[`docs/science.md`](docs/science.md)** (how spectrometer data
   becomes a risk signal).
 - [`docs/backend_design.md`](docs/backend_design.md) — in-depth backend design: data flow, every module/function, and many charts.
-- [`design.md`](design.md) — production-grade UI/UX brief for the upcoming frontend.
+- [`design.md`](design.md) — production-grade UI/UX brief for the frontend.
+- [`web/`](web/README.md) — the **Next.js operator console** (App Router + Tailwind v4 + MapLibre), wired live to this API.

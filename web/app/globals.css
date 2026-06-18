@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+/* ============================================================================
+   FASAL design tokens (OKLCH) — see ../../design.md
+   Semantic tokens live in :root and per-theme blocks; @theme maps them to
+   Tailwind utilities (e.g. bg-surface-1, text-risk-high). Themes switch by
+   setting [data-theme] on <html>.
+   ============================================================================ */
+:root {
+  /* surfaces — warm, paper-like neutrals (agronomic, not clinical gray) */
+  --surface-app: oklch(98.5% 0.004 95);
+  --surface-1: oklch(100% 0 0);
+  --surface-2: oklch(96.6% 0.006 95);
+  --surface-sunken: oklch(94% 0.006 95);
+  --border: oklch(90.5% 0.008 95);
+  --border-strong: oklch(83% 0.01 95);
+
+  /* text */
+  --text-primary: oklch(24% 0.02 262);
+  --text-secondary: oklch(46% 0.02 262);
+  --text-muted: oklch(60% 0.015 262);
+  --text-on-brand: oklch(99% 0 0);
+
+  /* brand — deep "remote-sensing" indigo (outside the risk hue band on purpose) */
+  --brand: oklch(52% 0.16 285);
+  --brand-strong: oklch(44% 0.17 285);
+  --brand-tint: oklch(95% 0.03 285);
+  --accent: oklch(70% 0.12 60);
+  --accent-tint: oklch(95% 0.04 60);
+
+  /* risk — ordered by lightness; ALWAYS paired with label + icon (+ hatch on high) */
+  --risk-low: oklch(74% 0.13 155);
+  --risk-low-ink: oklch(40% 0.1 155);
+  --risk-medium: oklch(79% 0.15 78);
+  --risk-medium-ink: oklch(45% 0.12 70);
+  --risk-high: oklch(57% 0.21 25);
+  --risk-high-ink: oklch(40% 0.18 25);
+  --risk-none: oklch(88% 0.01 95);
+
+  /* confidence — a separate visual channel from risk (violet / slate) */
+  --confidence-high: oklch(55% 0.03 262);
+  --confidence-uncertain: oklch(62% 0.13 300);
+  --ood: oklch(52% 0.04 255);
+
+  /* system semantics (non-risk UI only) */
+  --info: oklch(60% 0.12 240);
+  --success: oklch(62% 0.13 150);
+  --warning: oklch(75% 0.14 75);
+  --danger: oklch(58% 0.2 25);
+
+  /* elevation */
+  --shadow-1: 0 1px 2px oklch(24% 0.02 262 / 0.06), 0 1px 3px oklch(24% 0.02 262 / 0.08);
+  --shadow-2: 0 4px 12px oklch(24% 0.02 262 / 0.1);
+  --shadow-float: 0 8px 28px oklch(24% 0.02 262 / 0.16);
+}
+
+[data-theme="dark"] {
+  --surface-app: oklch(20% 0.02 262);
+  --surface-1: oklch(24% 0.02 262);
+  --surface-2: oklch(27% 0.02 262);
+  --surface-sunken: oklch(17% 0.02 262);
+  --border: oklch(33% 0.02 262);
+  --border-strong: oklch(42% 0.02 262);
+  --text-primary: oklch(95% 0.01 95);
+  --text-secondary: oklch(78% 0.015 95);
+  --text-muted: oklch(64% 0.015 95);
+  --brand-tint: oklch(30% 0.05 285);
+  --risk-low: oklch(78% 0.14 155);
+  --risk-medium: oklch(82% 0.16 80);
+  --risk-high: oklch(64% 0.21 25);
+  --risk-none: oklch(34% 0.01 262);
+  --shadow-1: 0 1px 2px oklch(0% 0 0 / 0.4);
+  --shadow-2: 0 4px 12px oklch(0% 0 0 / 0.5);
+  --shadow-float: 0 8px 28px oklch(0% 0 0 / 0.6);
+}
+
+/* field high-contrast (outdoor / sunlight legibility) */
+[data-theme="field"] {
+  --surface-app: oklch(100% 0 0);
+  --surface-1: oklch(100% 0 0);
+  --surface-2: oklch(97% 0 0);
+  --border: oklch(78% 0.01 95);
+  --border-strong: oklch(60% 0.01 95);
+  --text-primary: oklch(15% 0.02 262);
+  --text-secondary: oklch(32% 0.02 262);
+  --text-muted: oklch(45% 0.015 262);
+  --risk-low: oklch(66% 0.16 155);
+  --risk-medium: oklch(74% 0.17 75);
+  --risk-high: oklch(50% 0.23 25);
+}
+
+@theme inline {
+  --color-surface-app: var(--surface-app);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-on-brand: var(--text-on-brand);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tint: var(--brand-tint);
+  --color-accent: var(--accent);
+  --color-accent-tint: var(--accent-tint);
+  --color-risk-low: var(--risk-low);
+  --color-risk-low-ink: var(--risk-low-ink);
+  --color-risk-medium: var(--risk-medium);
+  --color-risk-medium-ink: var(--risk-medium-ink);
+  --color-risk-high: var(--risk-high);
+  --color-risk-high-ink: var(--risk-high-ink);
+  --color-risk-none: var(--risk-none);
+  --color-confidence-high: var(--confidence-high);
+  --color-confidence-uncertain: var(--confidence-uncertain);
+  --color-ood: var(--ood);
+  --color-info: var(--info);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-map: 4px;
+  --radius-card: 12px;
+  --radius-input: 8px;
+
+  --shadow-soft: var(--shadow-1);
+  --shadow-raised: var(--shadow-2);
+  --shadow-float: var(--shadow-float);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    background: var(--surface-app);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* tabular figures for data/coordinates */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+/* diagonal hatch for HIGH risk (non-color cue; colorblind-safe) */
+.risk-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    color-mix(in oklch, var(--risk-high-ink) 40%, transparent) 3px,
+    color-mix(in oklch, var(--risk-high-ink) 40%, transparent) 4px
+  );
+}

@@ -100,10 +100,10 @@ with reproducibility and geospatial correctness built in.
 | **Packaging/CI** | Docker, GitHub Actions | Reproducible envs; lint/type/test gates |
 | **Compute** | Edge GPU (field) + cloud GPU (training) | §6.1 "ideal" path; scalable training compute |
 
-## 5. Repository structure (as built — backend)
+## 5. Repository structure (as built)
 
-The backend foundation now exists at the repo root as the importable `fasal/` package; `web/` is
-deferred until the frontend design files arrive.
+The backend lives at the repo root as the importable `fasal/` package; the **`web/` operator console
+is now built** (Next.js App Router + Tailwind v4 + MapLibre, wired to this API — see `web/README.md`).
 
 ```
 fasal/                 # importable Python package (backend)
@@ -122,7 +122,8 @@ fasal/                 # importable Python package (backend)
 └── cli.py         # `fasal version` / `fasal demo`
 tests/             # pytest suite (science + ML + integration)
 infra/             # docker-compose (Postgres/PostGIS + MinIO); CI under .github/workflows/
-docs/              # planning suite + science.md     (web/ deferred until design files arrive)
+docs/              # planning suite + science.md + backend_design.md
+web/               # Next.js operator console (App Router + Tailwind v4 + MapLibre) — see web/README.md
 ```
 
 The **output contract** and **8 data objects** live in `shared/` so the pipeline, API, and web app

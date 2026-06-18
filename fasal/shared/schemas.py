@@ -73,6 +73,8 @@ class CalibrationRecord(BaseModel):
     irradiance_path: str | None = None
     dark_frame_path: str | None = None
     white_frame_path: str | None = None
+    integration_time_ms: float | None = Field(default=None, gt=0)
+    filter_name: str | None = None
 
 
 class CropMetadata(BaseModel):
@@ -144,3 +146,57 @@ class LabResult(BaseModel):
         if not math.isfinite(v):
             raise ValueError("concentration must be finite")
         return v
+
+
+# --- Instrument / acquisition records (Avantes point spectrometer) ---
+
+
+class Filter(BaseModel):
+    """An optical filter and its passband (nm)."""
+
+    name: str
+    passband_nm: tuple[float, float] | None = None
+
+
+class FieldOfView(BaseModel):
+    """Circular sensor field of view (full angle, degrees)."""
+
+    full_angle_deg: float = Field(gt=0, le=180)
+
+    def footprint_diameter_m(self, distance_m: float) -> float:
+        """Ground footprint diameter at a given distance: ``2·d·tan(FOV/2)``."""
+        import math
+
+        return 2.0 * distance_m * math.tan(math.radians(self.full_angle_deg) / 2.0)
+
+
+class WavelengthCalibrationSpec(BaseModel):
+    """Ascending pixel→wavelength polynomial coefficients (Avantes ``AVS_GetLambda`` / device file)."""
+
+    coefficients: list[float]
+
+    def wavelengths(self, n_pixels: int) -> list[float]:
+        import numpy as np
+        from numpy.polynomial import polynomial as poly
+
+        return poly.polyval(np.arange(n_pixels, dtype=float), self.coefficients).tolist()
+
+
+class SpectrometerSpec(BaseModel):
+    """Instrument configuration record (defaults to an Avantes VNIR point spectrometer)."""
+
+    manufacturer: str = "Avantes"
+    model: str | None = None
+    n_pixels: int = Field(gt=0)
+    wavelength_range_nm: tuple[float, float]
+    field_of_view: FieldOfView | None = None
+    wavelength_calibration: WavelengthCalibrationSpec | None = None
+    available_filters: list[Filter] = Field(default_factory=list)
+
+
+class AcquisitionSettings(BaseModel):
+    """Per-scan acquisition settings."""
+
+    integration_time_ms: float = Field(gt=0)
+    filter_name: str | None = None
+    averages: int = Field(default=1, ge=1)

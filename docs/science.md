@@ -65,6 +65,35 @@ reflectance `ρ_white`. In the field this must be augmented with:
 Without correct calibration, the model learns *lighting and sensor artifacts*, not the surface.
 Calibration **stability across days** is a tracked success metric. (Procedures: [`05`](05-field-ops-hardware-plan.md) §3.)
 
+## The instrument in practice — Avantes point spectrometer (counts vs pixel)
+
+The reference design imagines a hyperspectral *imager*, but the instrument FASAL actually uses is an
+**Avantes (AvaSpec) fiber/point spectrometer**. Its native output and controls shape the ingestion
+path (implemented in `fasal/pipeline/spectrum.py`):
+
+- **Raw data is counts vs detector pixel**, not wavelength. The x-axis is the detector pixel index
+  (e.g. 0–2047); each value is an intensity in counts (ADC). Wavelength comes from the device's
+  **calibration polynomial** ``λ(p) = c0 + c1·p + c2·p² + …`` (Avantes ``AVS_GetLambda`` / device
+  file). This pixel→wavelength step runs first; without it the bands are meaningless.
+- **Integration time** sets exposure: counts scale (≈linearly) with it, and dark current grows with
+  it too. Counts are therefore **dark-corrected then divided by integration time** (counts/ms)
+  before the white-reference ratio — so scans at different integration times are comparable.
+  Reflectance itself is integration-time-invariant: ``ρ = (sample − dark)/(white − dark)·ρ_white``.
+- **Optical filters** (order-sorting / band-pass) change the transmitted passband and response. The
+  active filter is recorded and the valid range is **masked to the filter passband** (and divided by
+  its transmission if characterized). White/dark references must use the same filter.
+- **Field of view (FOV)** — a point spectrometer integrates over a cone of acceptance. Each scan
+  covers a ground **footprint ≈ 2·d·tan(FOV/2)** at distance ``d``; the footprint, not a pixel, is
+  the spatial unit, so FOV and altitude set spatial resolution and overlap.
+- **Spatial mapping is sparse.** One scan = one spectrum over one footprint, so a field "map" is
+  built from **many geo-tagged point scans** along the flight path (interpolated if needed) — not a
+  dense raster. Dense heatmaps would need a hyperspectral *imager* (kept as a future path).
+
+After calibration the result is a set of reflectance spectra ``(N_scans, B)`` on the device
+wavelength grid, which flows into the **same** preprocessing, features, and models as §8. The
+science below (chemistry, confounds, detection limits, features) applies unchanged; only the
+front-end (counts→reflectance, per scan) differs from an imager.
+
 ## 3. Hyperspectral imaging fundamentals
 
 ### 3.1 The data cube

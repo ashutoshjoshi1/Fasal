@@ -13,6 +13,7 @@ from typing import Protocol, runtime_checkable
 import numpy as np
 
 from fasal.pipeline.cube import HSICube
+from fasal.pipeline.spectrum import RawSpectrum, WavelengthCalibration
 from fasal.shared.schemas import CalibrationRecord, FlightRecord, GeoPoint
 
 
@@ -49,6 +50,23 @@ class GNSS(Protocol):
 @runtime_checkable
 class IrradianceSensor(Protocol):
     def read(self) -> np.ndarray: ...
+
+
+@runtime_checkable
+class Spectrometer(Protocol):
+    """A point spectrometer producing counts vs detector pixel (e.g. Avantes AvaSpec)."""
+
+    @property
+    def n_pixels(self) -> int: ...
+
+    @property
+    def wavelength_calibration(self) -> WavelengthCalibration: ...
+
+    def acquire(self, integration_time_ms: float, filter_name: str | None = None) -> RawSpectrum: ...
+
+    def acquire_white(self, integration_time_ms: float) -> RawSpectrum: ...
+
+    def acquire_dark(self, integration_time_ms: float) -> RawSpectrum: ...
 
 
 @runtime_checkable

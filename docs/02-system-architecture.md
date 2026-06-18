@@ -136,6 +136,13 @@ cannot drift apart (single source of truth; supports NFR7 extensibility).
 4. **Serving (J/K):** API returns risk products + provenance; dashboard renders map-first with persona scoping.
 5. **Lab loop (M):** lab results joined by GPS to zones in PostGIS; dataset registry (DVC) updated; retraining tracked in MLflow.
 
+> **Point-sensor (Avantes) ingestion — primary path.** The current spectral sensor is an Avantes
+> point spectrometer emitting **counts vs detector pixel**. `fasal/pipeline/spectrum.py` maps
+> pixel→wavelength (device polynomial), applies dark / integration-time / white-reference calibration
+> and the filter passband, and yields reflectance spectra that enter the same preprocess→model path.
+> Each scan covers a FOV footprint, so the field map is a set of **geo-tagged point scans** (sparse),
+> not a dense raster (see [`science.md`](science.md) and [`05`](05-field-ops-hardware-plan.md) §1.4).
+
 ## 7. Cross-cutting concerns
 
 - **Reproducibility (NFR1):** preprocessing recipe + model + data are versioned together; a

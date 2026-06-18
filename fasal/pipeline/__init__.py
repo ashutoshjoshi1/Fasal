@@ -14,6 +14,15 @@ from fasal.pipeline.orchestrator import (
 )
 from fasal.pipeline.qc import QCResult
 from fasal.pipeline.segmentation import NDVISegmenter, Segmenter, vegetation_mask
+from fasal.pipeline.spectrum import (
+    PointSpectrum,
+    RawSpectrum,
+    WavelengthCalibration,
+    apply_filter,
+    calibrate_raw,
+    counts_to_reflectance,
+    fov_footprint_diameter,
+)
 
 __all__ = [
     "HSICube",
@@ -29,4 +38,12 @@ __all__ = [
     "PipelineConfig",
     "PipelineResult",
     "preprocess_spectra",
+    # point-spectrometer (Avantes) path
+    "RawSpectrum",
+    "PointSpectrum",
+    "WavelengthCalibration",
+    "calibrate_raw",
+    "counts_to_reflectance",
+    "apply_filter",
+    "fov_footprint_diameter",
 ]

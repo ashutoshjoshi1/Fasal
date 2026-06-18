@@ -36,3 +36,10 @@ RISK_MEDIUM_MAX: float = 0.66  # score <= -> medium ; otherwise high
 # --- Confidence / out-of-distribution thresholds --- (science.md §10, docs/04 §5)
 CONFIDENCE_UNCERTAIN_BAND: tuple[float, float] = (0.40, 0.60)  # near decision boundary -> uncertain
 OOD_TRAIN_QUANTILE: float = 0.99  # feature-distance above this training quantile -> OOD
+
+# --- Avantes (AvaSpec) point spectrometer defaults --- (placeholders; supply your device's values)
+# Raw output is counts vs detector pixel; pixel→wavelength uses the device calibration polynomial.
+AVANTES_PIXELS: int = 2048
+AVANTES_WAVELENGTH_RANGE: tuple[float, float] = (200.0, 1100.0)  # VNIR
+DEFAULT_INTEGRATION_TIME_MS: float = 50.0
+DEFAULT_FOV_DEG: float = 25.0  # circular fiber FOV; footprint = 2*d*tan(FOV/2)

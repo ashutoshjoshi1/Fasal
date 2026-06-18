@@ -7,8 +7,10 @@ from fasal.hardware.interfaces import (
     IrradianceSensor,
     RGBCamera,
     SpectralSensor,
+    Spectrometer,
 )
 from fasal.hardware.simulated import (
+    SimulatedAvantes,
     SimulatedDrone,
     SimulatedGNSS,
     SimulatedIrradianceSensor,
@@ -22,6 +24,8 @@ __all__ = [
     "IrradianceSensor",
     "RGBCamera",
     "SpectralSensor",
+    "Spectrometer",
+    "SimulatedAvantes",
     "SimulatedDrone",
     "SimulatedGNSS",
     "SimulatedIrradianceSensor",

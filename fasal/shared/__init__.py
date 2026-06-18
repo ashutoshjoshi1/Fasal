@@ -16,14 +16,19 @@ from fasal.shared.outputs import (
     SamplePlanPoint,
 )
 from fasal.shared.schemas import (
+    AcquisitionSettings,
     CalibrationRecord,
     CropMetadata,
+    FieldOfView,
+    Filter,
     FlightRecord,
     GeoPoint,
     GroundSample,
     LabResult,
     SpectralCube,
+    SpectrometerSpec,
     SprayMetadata,
+    WavelengthCalibrationSpec,
     WeatherMetadata,
 )
 
@@ -45,6 +50,12 @@ __all__ = [
     "SpectralCube",
     "SprayMetadata",
     "WeatherMetadata",
+    # instrument / acquisition
+    "Filter",
+    "FieldOfView",
+    "WavelengthCalibrationSpec",
+    "SpectrometerSpec",
+    "AcquisitionSettings",
     # outputs
     "Provenance",
     "ReasonCode",

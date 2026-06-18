@@ -6,7 +6,7 @@ risk range (not only suspected-high), supporting both calibration and validation
 
 from __future__ import annotations
 
-from fasal.services.screening import ScreeningResult
+from fasal.services.screening import PointScreeningResult, ScreeningResult
 from fasal.shared.enums import RiskClass
 from fasal.shared.outputs import SamplePlan, SamplePlanPoint
 from fasal.shared.schemas import GeoPoint
@@ -52,6 +52,42 @@ def build_sample_plan(
                     location=location,
                     target_risk=risk,
                     rationale=f"pixel ({row},{col}) risk score {probs[i]:.2f}",
+                )
+            )
+            counter += 1
+    return SamplePlan(flight_id=flight_id, points=points)
+
+
+def build_sample_plan_from_points(
+    result: PointScreeningResult,
+    *,
+    flight_id: str = "flight",
+    per_class: int = 2,
+) -> SamplePlan:
+    """Pick representative low/medium/high sampling points from a point (Avantes) screening result."""
+    probs = result.probs
+    locations = result.locations
+    if probs.size == 0:
+        return SamplePlan(flight_id=flight_id, points=[])
+
+    pixel_class = [RiskClass.from_score(float(p)) for p in probs]
+    points: list[SamplePlanPoint] = []
+    counter = 0
+    for risk in (RiskClass.HIGH, RiskClass.MEDIUM, RiskClass.LOW):
+        selected = [i for i, c in enumerate(pixel_class) if c == risk]
+        if not selected:
+            continue
+        order = sorted(selected, key=lambda i: -probs[i] if risk is RiskClass.HIGH else probs[i])
+        for i in order[:per_class]:
+            location = (
+                locations[i] if locations is not None and i < len(locations) else GeoPoint(lat=0.0, lon=0.0)
+            )
+            points.append(
+                SamplePlanPoint(
+                    point_id=f"sp-{counter}",
+                    location=location,
+                    target_risk=risk,
+                    rationale=f"scan {i} risk score {probs[i]:.2f}",
                 )
             )
             counter += 1

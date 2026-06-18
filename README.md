@@ -16,6 +16,7 @@ will be built from [`design.md`](design.md) once design files arrive.
 | Layer | Status | Module |
 |---|---|---|
 | Spectroscopy pipeline (calibration → preprocess → QC → segmentation) | **Implemented + tested** | `fasal/pipeline` |
+| **Avantes point spectrometer** path (counts→reflectance: pixel→wavelength, integration time, filters, FOV) | **Implemented + tested** | `fasal/pipeline/spectrum.py`, `fasal/hardware` |
 | Feature extraction (indices, descriptors) | **Implemented + tested** | `fasal/features` |
 | ML core — baselines (PLS-DA/RF/SVM/GBM), uncertainty/OOD, calibration, explainability | **Implemented + tested** | `fasal/models` |
 | Deep models — 1D-CNN + spectral/spatial/metadata fusion (MC-dropout) | **Implemented** (extra `deep`) | `fasal/models/deep` |
@@ -40,7 +41,8 @@ pip install -e ".[dev]"            # core + test tooling (no torch)
 #   pip install -e ".[api]"        # FastAPI/uvicorn
 
 pytest                              # run the test suite
-python -m fasal.cli demo            # end-to-end synthetic screening
+python -m fasal.cli demo            # end-to-end synthetic (imaging) screening
+python -m fasal.cli demo-avantes    # end-to-end Avantes point-spectrometer screening
 ```
 
 `fasal demo` runs a real screening: synthetic field → reflectance pipeline → baseline model →

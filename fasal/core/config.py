@@ -12,6 +12,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from fasal.core import constants as C
+
 
 class Settings(BaseSettings):
     """Process-wide configuration."""
@@ -33,6 +35,16 @@ class Settings(BaseSettings):
 
     # Determinism for synthetic data, model init, MC-dropout sampling, etc.
     random_seed: int = 1337
+
+    # Spectrometer (Avantes AvaSpec point sensor) — placeholders; supply your device's values.
+    # Raw output is counts vs detector pixel; pixel→wavelength uses the calibration coefficients.
+    spectrometer_pixels: int = C.AVANTES_PIXELS
+    spectrometer_wavelength_min_nm: float = C.AVANTES_WAVELENGTH_RANGE[0]
+    spectrometer_wavelength_max_nm: float = C.AVANTES_WAVELENGTH_RANGE[1]
+    default_integration_time_ms: float = C.DEFAULT_INTEGRATION_TIME_MS
+    default_filter: str | None = None
+    fov_deg: float = C.DEFAULT_FOV_DEG
+    wavelength_coefficients: list[float] | None = None  # AVS_GetLambda (ascending); None → linear default
 
 
 @lru_cache

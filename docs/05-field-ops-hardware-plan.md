@@ -35,6 +35,24 @@ deployment (cost/benefit gate; ties to the open question in [`01`](01-product-re
 Early trials favor **20–50 m**; fly **lower in trials** to reduce mixed pixels (a key technical-risk
 mitigation, [`06`](06-risk-compliance.md)).
 
+### 1.4 Spectral sensor in practice — Avantes (AvaSpec) point spectrometer
+
+The current spectral sensor is an **Avantes point spectrometer** (fiber-fed), not an imager. Its
+output is **counts vs detector pixel**, which dictates the data path and the field controls
+(see science.md "The instrument in practice"; code in `fasal/pipeline/spectrum.py`):
+
+| Aspect | Record / set | Why |
+|---|---|---|
+| **Wavelength calibration** | Device polynomial coefficients (`AVS_GetLambda` / device file) | Maps pixel→wavelength; required before analysis |
+| **Integration time** | Per-scan integration time (ms) | Counts (and dark) scale with it; used to normalize and avoid saturation |
+| **Optical filter** | Active filter + passband | Sets the valid range/response; references taken with the same filter |
+| **Field of view (FOV)** | Fiber/lens FOV (deg) | Footprint ≈ 2·d·tan(FOV/2) sets spatial resolution & scan overlap |
+| **Dark & white references** | Dark + white-panel scans at the same filter & integration time | Reflectance = (sample−dark)/(white−dark)·ρ_white |
+
+Because each scan is one footprint, the field "map" is a **set of geo-tagged point scans** along the
+flight path (sparse/interpolated), not a dense raster. Plan flight speed, scan rate, FOV, and
+altitude so footprints overlap enough for the intended sampling density.
+
 ## 2. Standard operating procedure (per flight)
 
 1. **Before flight, record metadata:** crop type, variety, growth stage, spray history, pesticide
